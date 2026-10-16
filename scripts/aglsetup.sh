@@ -43,20 +43,32 @@ $(for f in kas/feature/*.yml; do printf '  %s\n' "$(basename "$f" .yml)"; done)
 EOF
 }
 
-# Curated target -> feature-combo mapping, one kas/images.yaml per repo that actually defines
-# that target's recipe (not derivable from recipes/layers alone - same reason
-# ci/build-matrix.yaml is hand-curated too, just without that file's CI-tier/machine baggage).
-# Format kept bash-parseable on purpose (no python/yaml dependency on the host): one line per
-# target, `name: [feat, feat]` or `name: []`.
+# Curated target -> feature-combo listing. Not a kas file (kas has no notion of "targets" at
+# all, never reads this) - plain text kept here instead of a kas/ YAML file for that reason.
+# Not derivable from recipes/layers alone either - same reason ci/build-matrix.yaml is
+# hand-curated too, just without that file's CI-tier/machine baggage. List only the top-level
+# feature(s): if one listed feature's own kas includes: already pulls in another (e.g.
+# agl-kvm.yml includes agl-demo.yml), list just that one - verified live per entry before
+# trimming, not guessed.
 list_targets() {
-  for repo in meta-agl meta-agl-demo meta-agl-devel; do
-    local f="$repo/kas/images.yaml"
-    [ -f "$f" ] || continue
-    grep -E '^[A-Za-z0-9_-]+:\s*\[' "$f" | while IFS=: read -r target feats; do
-      feats="$(echo "$feats" | tr -d '[]' | xargs)"
-      printf '  %-45s %-20s (%s)\n' "$target" "${feats:-<none>}" "$repo"
-    done
-  done
+  cat <<'EOF'
+  agl-image-minimal                             <none>                               (meta-agl)
+  agl-image-flutter                             agl-flutter                          (meta-agl)
+  agl-image-flutter-debug                       agl-flutter                          (meta-agl)
+  agl-ivi-demo-flutter                          agl-demo                             (meta-agl-demo)
+  agl-ivi-demo-qt                               agl-demo                             (meta-agl-demo)
+  agl-cluster-demo-flutter                      agl-demo                             (meta-agl-demo)
+  agl-cluster-demo-qt                           agl-demo                             (meta-agl-demo)
+  agl-gateway-demo                              agl-demo                             (meta-agl-demo)
+  agl-kvm-demo                                  agl-kvm                              (meta-agl-demo)
+  agl-instrument-cluster-standalone-demo        agl-ic                               (meta-agl-demo)
+  agl-instrument-cluster-standalone-demo-slint  agl-ic, agl-ic-slint                 (meta-agl-demo)
+  lxc-host-image-minimal                        agl-drm-lease, agl-ic                (meta-agl-devel)
+  agl-host-image-drm-lease-test                 agl-drm-lease, agl-ic                (meta-agl-devel)
+  agl-instrument-cluster-container-demo         agl-drm-lease, agl-ic                (meta-agl-devel)
+  agl-xen-image-test                            agl-xen                              (meta-agl-devel)
+  agl-uhmi-demo-ivi-demo-flutter                agl-uhmi-demo                        (meta-agl-devel)
+EOF
 }
 
 MACHINE="qemux86-64"
