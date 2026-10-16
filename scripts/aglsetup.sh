@@ -57,6 +57,7 @@ list_targets() {
   cat <<'EOF'
   agl-image-minimal                             <none>                               (meta-agl)
   agl-image-flutter                             agl-flutter                          (meta-agl)
+  initramfs-netboot-image                       agl-netboot                          (meta-agl)
   agl-image-flutter-debug                       agl-flutter                          (meta-agl)
   agl-ivi-demo-flutter                          agl-demo                             (meta-agl-demo)
   agl-ivi-demo-qt                               agl-demo                             (meta-agl-demo)
