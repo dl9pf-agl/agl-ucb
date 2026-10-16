@@ -28,6 +28,11 @@ bitbake yourself once inside, e.g. \`bitbake agl-image-minimal\`.
   -b, --builddir DIR      use DIR as the kas build directory instead of the shared build/
   -h, --help              this message
 
+Environment variables:
+  AGL_SSTATE_DIR   shared sstate cache dir across builds, bind-mounted in - unset: private
+  AGL_DL_DIR       shared downloads dir across builds, bind-mounted in - unset: private
+  AGL_FLOATING     non-empty: use kas/floating.yml (unpinned) instead of kas/pins.yml
+
 Available machines:
 $(for f in kas/machine/*.yml; do printf '  %s\n' "$(basename "$f" .yml)"; done)
 
