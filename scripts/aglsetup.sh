@@ -40,7 +40,10 @@ $(for f in kas/machine/*.yml; do printf '  %s\n' "$(basename "$f" .yml)"; done)
 
 Available features:
 $(for f in kas/feature/*.yml; do printf '  %s\n' "$(basename "$f" .yml)"; done)
+
+Available target images:
 EOF
+list_targets
 }
 
 # Curated target -> feature-combo listing. Not a kas file (kas has no notion of "targets" at
@@ -61,13 +64,23 @@ list_targets() {
   agl-cluster-demo-qt                           agl-demo                             (meta-agl-demo)
   agl-gateway-demo                              agl-demo                             (meta-agl-demo)
   agl-kvm-demo                                  agl-kvm                              (meta-agl-demo)
-  agl-instrument-cluster-standalone-demo        agl-ic                               (meta-agl-demo)
-  agl-instrument-cluster-standalone-demo-slint  agl-ic, agl-ic-slint                 (meta-agl-demo)
-  lxc-host-image-minimal                        agl-drm-lease, agl-ic                (meta-agl-devel)
-  agl-host-image-drm-lease-test                 agl-drm-lease, agl-ic                (meta-agl-devel)
-  agl-instrument-cluster-container-demo         agl-drm-lease, agl-ic                (meta-agl-devel)
+  agl-instrument-cluster-standalone-demo        agl-ic, agl-demo                     (meta-agl-demo)
+  agl-instrument-cluster-standalone-demo-slint  agl-ic, agl-ic-slint, agl-demo       (meta-agl-demo)
+  lxc-host-image-minimal                        BROKEN - see note below            (meta-agl-devel)
+  agl-host-image-drm-lease-test                 BROKEN - see note below            (meta-agl-devel)
+  agl-instrument-cluster-container-demo         BROKEN - see note below            (meta-agl-devel)
   agl-xen-image-test                            agl-xen                              (meta-agl-devel)
-  agl-uhmi-demo-ivi-demo-flutter                agl-uhmi-demo                        (meta-agl-devel)
+  agl-uhmi-demo-ivi-demo-flutter                BROKEN - see note below            (meta-agl-devel)
+EOF
+  cat <<'EOF'
+
+  lxc-host-image-minimal/agl-host-image-drm-lease-test/agl-instrument-cluster-container-demo:
+    no feature combo resolves these - their recipes live in the meta-agl-ic-container layer,
+    which no working feature enables (agl-ic-container.yml would, but it's independently
+    broken: missing meta-virtualization/meta-qt6). Pre-existing gap, not introduced here.
+  agl-uhmi-demo-ivi-demo-flutter:
+    no such target - the real recipe is agl-uhmi-demo-preconfigured-ivi-demo-flutter
+    (note the extra "preconfigured"). Likely a typo in the original ci/build-matrix.yaml.
 EOF
 }
 
