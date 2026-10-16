@@ -66,21 +66,11 @@ list_targets() {
   agl-kvm-demo                                  agl-kvm                              (meta-agl-demo)
   agl-instrument-cluster-standalone-demo        agl-ic, agl-demo                     (meta-agl-demo)
   agl-instrument-cluster-standalone-demo-slint  agl-ic, agl-ic-slint, agl-demo       (meta-agl-demo)
-  lxc-host-image-minimal                        BROKEN - see note below            (meta-agl-devel)
-  agl-host-image-drm-lease-test                 BROKEN - see note below            (meta-agl-devel)
-  agl-instrument-cluster-container-demo         BROKEN - see note below            (meta-agl-devel)
+  lxc-host-image-minimal                        agl-ic-container                     (meta-agl-devel)
+  agl-host-image-drm-lease-test                 agl-ic-container                     (meta-agl-devel)
+  agl-instrument-cluster-container-demo         agl-ic-container                     (meta-agl-devel)
   agl-xen-image-test                            agl-xen                              (meta-agl-devel)
-  agl-uhmi-demo-ivi-demo-flutter                BROKEN - see note below            (meta-agl-devel)
-EOF
-  cat <<'EOF'
-
-  lxc-host-image-minimal/agl-host-image-drm-lease-test/agl-instrument-cluster-container-demo:
-    no feature combo resolves these - their recipes live in the meta-agl-ic-container layer,
-    which no working feature enables (agl-ic-container.yml would, but it's independently
-    broken: missing meta-virtualization/meta-qt6). Pre-existing gap, not introduced here.
-  agl-uhmi-demo-ivi-demo-flutter:
-    no such target - the real recipe is agl-uhmi-demo-preconfigured-ivi-demo-flutter
-    (note the extra "preconfigured"). Likely a typo in the original ci/build-matrix.yaml.
+  agl-uhmi-demo-preconfigured-ivi-demo-flutter  agl-uhmi-demo                        (meta-agl-devel)
 EOF
 }
 
