@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: MIT
+header:
+  version: 22
+
+# Optional, local-developer only - only included when $AGL_DL_DIR is set (see
+# ci/scripts/_kas_runtime_args.sh). Never wired into any ci/build-matrix.yaml combo or CI
+# workflow directly.
+env:
+  AGL_DL_DIR:
+
+local_conf_header:
+  dl-shared: |
+    DL_DIR = "${AGL_DL_DIR}"

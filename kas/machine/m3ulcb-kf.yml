@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: MIT
+header:
+  version: 22
+
+machine: m3ulcb
+
+repos:
+  meta-agl:
+    layers:
+      meta-agl-bsp/meta-rcar-gen3-adas:
+  meta-renesas:
+    url: https://github.com/renesas-rcar/meta-renesas
+    path: bsp/meta-renesas
+    branch: wrynose-dev
+    layers:
+      meta-rcar-gen3:
+  meta-yocto:
+    url: https://git.yoctoproject.org/meta-yocto
+    path: external/meta-yocto
+    branch: wrynose
+    layers:
+      meta-yocto-bsp:
+      meta-poky:
+  meta-openembedded:
+    layers:
+      meta-python:
+
+local_conf_header:
+  m3ulcb-kf: |
+    require conf/include/agl_m3ulcb.inc
+    require conf/include/rcar-gen3-adas.inc

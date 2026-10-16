@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: MIT
+header:
+  version: 22
+
+machine: qemux86-64
+
+local_conf_header:
+  qemux86-64: |
+    require conf/include/agl_qemux86-64.inc

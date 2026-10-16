@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: MIT
+header:
+  version: 22
+
+machine: qemuriscv64
+
+local_conf_header:
+  qemuriscv64: |
+    require conf/include/agl_qemuriscv64.inc

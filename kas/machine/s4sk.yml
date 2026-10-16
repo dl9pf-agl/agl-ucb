@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: MIT
+header:
+  version: 22
+
+machine: s4sk
+
+repos:
+  meta-renesas:
+    url: https://github.com/renesas-rcar/meta-renesas
+    path: bsp/meta-renesas
+    branch: wrynose-dev
+    layers:
+      meta-rcar-gateway:
+  meta-yocto:
+    url: https://git.yoctoproject.org/meta-yocto
+    path: external/meta-yocto
+    branch: wrynose
+    layers:
+      meta-yocto-bsp:
+      meta-poky:
+  meta-openembedded:
+    layers:
+      meta-python:
+
+local_conf_header:
+  s4sk: |
+    require conf/include/agl_s4sk.inc

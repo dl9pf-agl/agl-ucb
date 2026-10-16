@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: MIT
+# Static pointer, not the real fragment - the real one lives in meta-agl-devel's own
+# kas/feature/agl-uhmi.yml. One line of real content per feature, no generation.
+header:
+  version: 22
+  includes:
+    - repo: meta-agl-devel
+      file: kas/feature/agl-uhmi.yml

@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: MIT
+header:
+  version: 22
+
+machine: aws-ec2-arm64
+
+repos:
+  meta-aws:
+    url: https://github.com/aws4embeddedlinux/meta-aws
+    path: bsp/meta-aws
+    branch: wrynose
+  meta-virtualization:
+    url: https://git.yoctoproject.org/meta-virtualization
+    path: external/meta-virtualization
+    branch: wrynose
+  meta-openembedded:
+    layers:
+      meta-filesystems:
+      meta-python:
+      meta-multimedia:
+      meta-networking:
+
+local_conf_header:
+  aws-ec2: |
+    VIRTUAL-RUNTIME_initscripts = "systemd-compat-units"
+    IMAGE_INSTALL:append = " cloud-init"
+    DISTRO_FEATURES:append = " virtualization"
+    INHERIT += "extrausers"
+    EXTRA_USERS_PARAMS = "usermod -L root; useradd -p '*' user"
+    EXTRA_IMAGE_FEATURES:append = " ssh-server-openssh"
+    EXTRA_IMAGE_FEATURES:remove = "debug-tweaks"
+    AGL_DEFAULT_IMAGE_FSTYPES := "wic.vhd"
+    PACKAGES:pn-cloud-init:forcevariable = "cloud-init-src cloud-init-dbg cloud-init-staticdev cloud-init-dev cloud-init-doc cloud-init-locale cloud-init-systemd cloud-init"

@@ -1,0 +1,76 @@
+# SPDX-License-Identifier: MIT
+header:
+  version: 22
+
+# Single consolidated source of truth for every external (non-vendored) repo's pinned commit,
+# across every machine/feature fragment. Always colon-joined last by ci/scripts/_compose_kasfiles.py
+# - no per-combo lockfiles, no per-fragment overrides. Regenerate entries here with `make lock`
+# when deliberately bumping a repo; review the diff before committing.
+#
+# Realigned to match the classic AGL repo-tool manifest (/home/dl9pf/AGL/master/.repo/manifests/
+# default.xml) rather than each repo's independently-floated `make pin-update` tip - that's the
+# validated-together combination the AGL project actually tests, and the previous independent
+# floats had drifted out of mutual compatibility (meta-flutter's pin had moved ~6 months ahead of
+# its paired openembedded-core pin, which doesn't understand the newer SPDX "AND"/"OR" LICENSE
+# syntax meta-flutter's current recipes use - surfaced as `license-format` QA errors on
+# libwebrtc/rive-text). meta-agl/meta-agl-demo/meta-agl-devel are intentionally excluded here -
+# those are vendored git subtrees tracked directly in this repo, not external repos kas fetches.
+overrides:
+  repos:
+    # base.yml
+    bitbake:
+      commit: fae9db3168dbff1b8c76fe9c6726a9687ff97514
+    openembedded-core:
+      commit: ef022bf82d79015802309d14c28b13373ebe53f5
+    meta-lts-mixins-rust:
+      commit: 113341a44c841219a4062e59be6e617df199de14
+    meta-openembedded:
+      commit: 14282a02be9c74a1276a7cda7d6c89e054699a11
+    # feature/agl-demo.yml
+    meta-qt6:
+      commit: e584e8eb8ea66c944aaa9f42458aaa2af43e713c
+    # feature/agl-flutter.yml
+    meta-flutter:
+      commit: 450ea5b3eb5b84c58e71e956c17a23ce1f2335fd
+    # feature/agl-selinux.yml
+    meta-selinux:
+      commit: 1c3a699f363167571ab39fecb0fe6f56691a4e20
+    # feature/agl-kvm.yml, feature/agl-xen.yml, machine/aws-ec2-*.yml
+    meta-virtualization:
+      commit: 70a5d5a65d7237cfe978961fa4d8765c895cddc8
+    # feature/agl-ic-slint.yml
+    meta-rust-bin:
+      commit: 54721fa1c7a4edaba7fb63cdbcaf0c6253c5fa3a
+    meta-slint:
+      commit: 9a364c888925fe9827cf9febfcd507cdedf129e3
+    # machine/raspberrypi4.yml, machine/raspberrypi5.yml
+    meta-raspberrypi:
+      commit: f62c67921474370829d24a4fa01ef88543f3906b
+    # machine/h3ulcb*.yml, machine/m3ulcb*.yml, machine/s4sk.yml
+    meta-renesas:
+      commit: 522989b6d8f9496a2f256e502e8d51fdca681470
+    # machine/h3ulcb*.yml, machine/m3ulcb*.yml, machine/s4sk.yml, machine/sparrow-hawk.yml
+    meta-yocto:
+      commit: 1b132647002eea43a2c7a7f857f63f42dacbc26c
+    # machine/sparrow-hawk.yml
+    meta-sparrow-hawk:
+      commit: a45dbc05ca63f900014d7dc4aa9255e8868d655a
+    # machine/jetson-agx-orin-devkit.yml
+    meta-tegra:
+      commit: 02ec647e0749fc851ed0d75e86291bacd8e5797a
+    # machine/nanopc-t6.yml, machine/rock-5b.yml, machine/beaglebone-ai64.yml,
+    # machine/beagleplay.yml, machine/generic-arm64.yml
+    meta-arm:
+      commit: 0979b80429099f1a42dc0026c8c466cee780bc74
+    # machine/nanopc-t6.yml, machine/rock-5b.yml
+    meta-rockchip:
+      commit: 9d02575bfd9ca5e87c394f593f2bbdbdee914d4e
+    # machine/beaglebone-ai64.yml, machine/beagleplay.yml
+    meta-ti:
+      commit: 018a5e2bc1da78e198ea57900b993ea91795a5d0
+    # machine/visionfive2.yml
+    meta-riscv:
+      commit: 50941215124f126229ad3702bedabd87dec130c9
+    # machine/aws-ec2-arm64.yml, machine/aws-ec2-x86-64.yml
+    meta-aws:
+      commit: 5e7cc95f7d55a0ba0ae6a7e6e43e6323811a140a

@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: MIT
+header:
+  version: 22
+
+# Optional, local-developer only - only included when $AGL_SSTATE_DIR is set (see
+# ci/scripts/_kas_runtime_args.sh). Never wired into any ci/build-matrix.yaml combo or CI
+# workflow directly.
+#
+# Partitioned by ${DEFAULTTUNE}: sharing one flat SSTATE_DIR across machines with different
+# tunes works fine correctness-wise (sstate hashes already encode enough context to avoid
+# collisions), but a flat cache directory with every machine/tune's objects mixed in one
+# place gets slow to list at scale - splitting by tune keeps each subdirectory smaller.
+# AGL_SSTATE_DIR itself only needs to name the base directory - Docker bind-mounts are
+# recursive, so whatever subdirectory bitbake creates underneath it is automatically visible
+# in the container too, no extra mount needed.
+#
+# The intermediate AGL_SSTATE_DIR_RESOLVED variable is required, not cosmetic: AGL_SSTATE_DIR
+# is an OS-environment-passthrough variable (BB_ENV_PASSTHROUGH_ADDITIONS' "inheritFromOS"
+# mechanism, via this file's own `env:` key below), and referencing it directly inside
+# another variable's *lazily* (`=`) expanded value breaks - confirmed by reproducing it live:
+# `bitbake -e`/`yocto-check-layer` both failed with `stat -f -c %T ${AGL_SSTATE_DIR}/corei7-64:
+# No such file or directory` from oe-core's sanity.bbclass, meaning ${AGL_SSTATE_DIR} reached
+# the shell completely unexpanded (while ${DEFAULTTUNE}, a normal conf-assigned variable in
+# the same string, resolved fine) - some combination of sanity.bbclass's early eventhandler
+# timing and how passthrough-additions resolve nested references inside a lazy assignment.
+# Capturing it into a *immediately* (`:=`) expanded variable first - which does resolve
+# correctly, forcing the OS-environment lookup to happen right at this line's own parse time
+# instead of being deferred - sidesteps the bug entirely. Removing this indirection
+# reintroduces the failure; don't "simplify" it back to a single `=` line without re-testing
+# against a real `bitbake -e` or `yocto-check-layer` run first.
+env:
+  AGL_SSTATE_DIR:
+
+#
+# BB_HASHSERVE_DB_DIR = "${SSTATE_DIR}" moves the hash-equivalence database alongside the
+# now-shared sstate cache instead of leaving it at its own default (private per checkout,
+# inside TOPDIR) - oe-core's sanity.bbclass has a dedicated check for exactly this split
+# ("Check that when SSTATE_DIR is shared between builds, hashserve database is not private to
+# a build"), which would otherwise warn. Referencing ${SSTATE_DIR} here is safe without the
+# AGL_SSTATE_DIR_RESOLVED := trick above - by this point SSTATE_DIR is itself a normal
+# conf-assigned bitbake variable, not an OS-environment-passthrough one, so the nesting bug
+# described above doesn't apply to it.
+local_conf_header:
+  sstate-shared: |
+    AGL_SSTATE_DIR_RESOLVED := "${AGL_SSTATE_DIR}"
+    SSTATE_DIR = "${AGL_SSTATE_DIR_RESOLVED}/${DEFAULTTUNE}"
+    BB_HASHSERVE_DB_DIR = "${SSTATE_DIR}"

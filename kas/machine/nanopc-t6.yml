@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: MIT
+header:
+  version: 22
+
+machine: nanopc-t6
+
+repos:
+  meta-arm:
+    url: https://git.yoctoproject.org/meta-arm
+    path: bsp/meta-arm
+    branch: wrynose
+    layers:
+      meta-arm:
+      meta-arm-toolchain:
+  meta-rockchip:
+    url: https://git.yoctoproject.org/meta-rockchip
+    path: bsp/meta-rockchip
+    branch: wrynose
+
+local_conf_header:
+  nanopc-t6: |
+    require conf/include/agl_rk3588.inc

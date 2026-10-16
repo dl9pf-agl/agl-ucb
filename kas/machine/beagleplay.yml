@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: MIT
+header:
+  version: 22
+
+machine: beagleplay
+
+repos:
+  meta-arm:
+    url: https://git.yoctoproject.org/meta-arm
+    path: bsp/meta-arm
+    branch: wrynose
+    layers:
+      meta-arm:
+      meta-arm-toolchain:
+  meta-ti:
+    url: https://git.yoctoproject.org/meta-ti
+    path: bsp/meta-ti
+    branch: wrynose
+    layers:
+      meta-ti-bsp:
+      meta-beagle:
+
+local_conf_header:
+  beagleplay: |
+    require conf/include/agl_beagleplay.inc

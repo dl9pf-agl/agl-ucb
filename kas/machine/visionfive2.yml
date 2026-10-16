@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: MIT
+header:
+  version: 22
+
+machine: visionfive2
+
+repos:
+  meta-riscv:
+    url: https://github.com/riscv/meta-riscv
+    path: bsp/meta-riscv
+    branch: wrynose
+
+local_conf_header:
+  visionfive2: |
+    require conf/include/agl_visionfive2.inc

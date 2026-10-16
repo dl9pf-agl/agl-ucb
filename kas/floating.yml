@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: MIT
+header:
+  version: 22
+
+# Local-only alternative to kas/pins.yml: NO commit overrides, so every repo resolves to the
+# tip of whatever branch its machine/feature fragment declares. Swapped in for pins.yml when
+# AGL_SSTATE_DIR is irrelevant - see AGL_FLOATING in docs/setup.md. Never used in CI (CI always
+# gets the pinned, reproducible kas/pins.yml). `make pin-update` resolves the current tips
+# this file would float to and writes them into kas/pins.yml for you to review and commit.

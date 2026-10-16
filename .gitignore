@@ -1,0 +1,8 @@
+/build/
+# AGL repos nest here, git-ignored sibling clones instead of a repo-tool manifest (same visual
+# tree `repo init`+`repo sync` used to produce) - kas auto-fetches whichever are needed.
+/meta-agl/
+/meta-agl-demo/
+/meta-agl-devel/
+# non-AGL layers kas fetches directly (bitbake, openembedded-core, meta-openembedded, etc.)
+/external/
