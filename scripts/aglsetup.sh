@@ -20,12 +20,14 @@ cd "$REPO_ROOT"
 usage() {
   cat <<EOF
 Usage: $(basename "$0") [-m|--machine MACHINE] [-b|--builddir DIR] [feature [feature ...]]
+       $(basename "$0") --list-targets
 
 Drops you into an interactive kas-container shell for MACHINE plus the given features. Run
 bitbake yourself once inside, e.g. \`bitbake agl-image-minimal\`.
 
   -m, --machine MACHINE   default: qemux86-64
   -b, --builddir DIR      use DIR as the kas build directory instead of the shared build/
+  --list-targets          list known bitbake targets and the feature(s) each one needs, then exit
   -h, --help              this message
 
 Environment variables:
@@ -41,6 +43,22 @@ $(for f in kas/feature/*.yml; do printf '  %s\n' "$(basename "$f" .yml)"; done)
 EOF
 }
 
+# Curated target -> feature-combo mapping, one kas/images.yaml per repo that actually defines
+# that target's recipe (not derivable from recipes/layers alone - same reason
+# ci/build-matrix.yaml is hand-curated too, just without that file's CI-tier/machine baggage).
+# Format kept bash-parseable on purpose (no python/yaml dependency on the host): one line per
+# target, `name: [feat, feat]` or `name: []`.
+list_targets() {
+  for repo in meta-agl meta-agl-demo meta-agl-devel; do
+    local f="$repo/kas/images.yaml"
+    [ -f "$f" ] || continue
+    grep -E '^[A-Za-z0-9_-]+:\s*\[' "$f" | while IFS=: read -r target feats; do
+      feats="$(echo "$feats" | tr -d '[]' | xargs)"
+      printf '  %-45s %-20s (%s)\n' "$target" "${feats:-<none>}" "$repo"
+    done
+  done
+}
+
 MACHINE="qemux86-64"
 BUILDDIR=""
 FEATURES=()
@@ -48,6 +66,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     -m|--machine) MACHINE="$2"; shift 2 ;;
     -b|--builddir) BUILDDIR="$2"; shift 2 ;;
+    --list-targets) echo "Known targets (target, feature(s), owning repo):"; list_targets; exit 0 ;;
     -h|--help) usage; exit 0 ;;
     --) shift; FEATURES+=("$@"); break ;;
     -*) echo "$(basename "$0"): unknown option: $1" >&2; usage >&2; exit 2 ;;
