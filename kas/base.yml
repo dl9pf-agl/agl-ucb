@@ -5,28 +5,24 @@ header:
 distro: agl
 
 repos:
-  # Declared here, unconditionally, same as bitbake/openembedded-core below - kas's own
-  # repos-resolution already does exists-or-fetch (use path: if already checked out under
-  # agl-ucb, clone from url: if not), so there's nothing for aglsetup.sh to decide or
-  # generate. Trade-off, deliberate: every build fetches all 3 AGL repos, even a core-only
-  # one - KISS over the earlier selective-declare optimization.
-  # `branch:` without `commit:` makes kas hard-reset the checkout to the branch tip on every
-  # invocation - confirmed live, the hard way (destroyed local, not-yet-pushed commits in a
-  # sandbox clone, twice, before this was caught). Real deployment: push to these repos' own
-  # master first, then this problem never arises (local HEAD = remote tip, nothing to lose).
-  # For now (sandbox + not yet pushed): path:-only, no url:/branch: - requires the 3 AGL repos
-  # pre-cloned, same as meta-agl already was. kas/pins.yml is where a real commit: pin for each
-  # would go once this repo is live upstream.
+  # AGL layers: kas clones them on first use (clone agl-ucb, run scripts/aglsetup.sh, done).
+  # Without `commit:` kas hard-resets a CLEAN clone to the branch tip on every run, which drops
+  # unpushed commits (a dirty clone is skipped). To work on a layer use dev mode
+  # (`aglsetup.sh --dev`, kas/local/dev.yml: kas leaves the clones alone). CI adds a generated
+  # fragment with `commit:` (and a fork `url:`) for the repo under test.
   meta-agl:
-    path: meta-agl
+    url: https://github.com/dl9pf-agl/meta-agl.git
+    branch: master
     layers:
       meta-agl-core:
       meta-agl-bsp:
   meta-agl-demo:
-    path: meta-agl-demo
+    url: https://github.com/dl9pf-agl/meta-agl-demo.git
+    branch: master
     layers: {}   # the features under kas/feature/ add whichever layers they need
   meta-agl-devel:
-    path: meta-agl-devel
+    url: https://github.com/dl9pf-agl/meta-agl-devel.git
+    branch: master
     layers: {}   # its subdirs are the real layers, not its own root
   bitbake:
     url: https://git.openembedded.org/bitbake

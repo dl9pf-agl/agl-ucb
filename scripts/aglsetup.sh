@@ -27,6 +27,8 @@ bitbake yourself once inside, e.g. \`bitbake agl-image-minimal\`.
 
   -m, --machine MACHINE   default: qemux86-64
   -b, --builddir DIR      use DIR as the kas build directory instead of the shared build/
+  --dev                   dev mode: kas never touches the meta-agl* clones (local changes stay);
+                          needs them cloned already, i.e. run once without --dev first
   --list-targets          list known bitbake targets and the feature(s) each one needs, then exit
   -h, --help              this message
 
@@ -77,11 +79,13 @@ EOF
 
 MACHINE="qemux86-64"
 BUILDDIR=""
+DEV=""
 FEATURES=()
 while [ $# -gt 0 ]; do
   case "$1" in
     -m|--machine) MACHINE="$2"; shift 2 ;;
     -b|--builddir) BUILDDIR="$2"; shift 2 ;;
+    --dev) DEV=1; shift ;;
     --list-targets) echo "Known targets (target, feature(s), owning repo):"; list_targets; exit 0 ;;
     -h|--help) usage; exit 0 ;;
     --) shift; FEATURES+=("$@"); break ;;
@@ -104,6 +108,19 @@ for f in "${FEATURES[@]}"; do
   fi
   KASFILES="$KASFILES:kas/feature/$f.yml"
 done
+if [ -n "$DEV" ]; then
+  for r in meta-agl meta-agl-demo meta-agl-devel; do
+    [ -d "$r/.git" ] || { echo "$(basename "$0"): --dev needs $r cloned: run once without --dev" >&2; exit 2; }
+  done
+  KASFILES="$KASFILES:kas/local/dev.yml"
+else
+  for r in meta-agl meta-agl-demo meta-agl-devel; do
+    if [ -d "$r/.git" ] && { [ -n "$(git -C "$r" status --porcelain)" ] || \
+       [ -n "$(git -C "$r" log --oneline '@{u}..' 2>/dev/null)" ]; }; then
+      echo "$(basename "$0"): WARNING: $r has local changes/unpushed commits; kas may reset it - use --dev" >&2
+    fi
+  done
+fi
 # Optional shared sstate/downloads cache across builds - opt-in, off unless set.
 RUNTIME_ARGS="--runtime-args --security-opt --runtime-args label=disable"
 if [ -n "${AGL_SSTATE_DIR:-}" ]; then

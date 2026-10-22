@@ -1,20 +1,28 @@
 # agl-ucb
 
 Umbrella for the AGL kas build: kas fragments (`kas/`), pinned external layers (`kas/pins.yml`) and the entry
-script `scripts/aglsetup.sh`. The AGL layers `meta-agl`, `meta-agl-demo` and `meta-agl-devel` live in their own
-repositories and are cloned into this checkout.
+script `scripts/aglsetup.sh`. kas clones the AGL layers `meta-agl`, `meta-agl-demo` and `meta-agl-devel` into this
+checkout on first use.
 
 ```
 git clone https://github.com/dl9pf-agl/agl-ucb && cd agl-ucb
-scripts/checkout-layers.sh            # clones the three layers (shallow) where kas/base.yml expects them
 scripts/aglsetup.sh -m qemux86-64     # kas-container shell; then: bitbake agl-image-minimal
 ```
 
-`scripts/checkout-layers.sh` is also what CI runs. To test a layer from another repository or commit:
+## Working on a layer (dev mode, opt-in)
+
+Without `commit:` kas hard-resets a clean layer clone to the branch tip on every run, which drops unpushed
+commits (a dirty clone is skipped). To edit a layer, clone once as above, then:
 
 ```
-LAYER_meta_agl=https://github.com/<you>/meta-agl.git@<commit> scripts/checkout-layers.sh
+scripts/aglsetup.sh --dev -m qemux86-64
 ```
 
-An existing clone is never moved unless you name it with `LAYER_<name>`, and never if it has local changes
-(`FORCE=1` overrides). `AGL_FULL=1` fetches full history. CI definition: <https://github.com/dl9pf-agl/agl-ci>.
+`--dev` adds `kas/local/dev.yml`: the three layers are plain local directories that kas never fetches, resets or
+moves. Without `--dev`, `aglsetup.sh` warns when a layer has local changes. With plain `kas`/`kas-container`
+append `kas/local/dev.yml` to the config chain.
+
+## CI
+
+CI appends one generated fragment with `commit:` (fork PRs: the fork `url:`) for the repo under test.
+Definition: <https://github.com/dl9pf-agl/agl-ci>.
