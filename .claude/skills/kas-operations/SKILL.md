@@ -1,117 +1,54 @@
 ---
 name: kas-operations
-description: Hard-won operational knowledge for calling kas and kas-container in this repo - environment variables (KAS_TARGET, KAS_WORK_DIR, KAS_BUILD_DIR, KAS_CONTAINER_IMAGE), how this repo composes its kas/ YAML fragments, kas-container's exact command grammar, and how to safely run and debug long bitbake builds without corrupting them. Consult this BEFORE running make build/validate/setup, scripts/aglsetup.sh, or any direct kas-container/kas invocation in this repo, and whenever a kas-related command fails in a way that looks confusing (wrong target built, missing tool inside the container, a build that fails right after being interrupted, sstate suddenly at 0%). Also consult it before moving/renaming anything under kas/ or changing a repos: path: in a kas YAML fragment.
+description: Operational knowledge for kas and kas-container in agl-ucb - scripts/aglsetup.sh, how kas/ fragments are composed (base, machine, feature, pins, local), env vars (KAS_TARGET, KAS_BUILD_DIR, AGL_SSTATE_DIR, AGL_DL_DIR), the kas hard-reset trap on the meta-agl* clones and --dev mode, kas-container command grammar, and running long bitbake builds safely. Consult BEFORE running aglsetup.sh or any kas/kas-container command here, when a kas command fails confusingly (wrong target built, local layer changes lost, build broken after an interruption, sstate at 0%), and before moving/renaming anything under kas/ or editing a repos: entry.
 ---
 
-# kas / kas-container operational knowledge (this repo)
+# kas / kas-container in agl-ucb
 
-Fast-lookup reference, not a tutorial. Everything here was verified firsthand against this
-repo's actual `kas`/`kas-container` behavior - quote the relevant section back when explaining
-*why* something needs doing, don't just follow it blindly.
+Verified behaviour, not a tutorial. Quote the relevant part when explaining why.
 
-## 1. Environment setup (do this before anything else)
-
-| Need | How | Why it matters |
-|---|---|---|
-| Docker daemon | `sudo dockerd --storage-driver=vfs --group=docker > log 2>&1 & disown` (if not already running) | `kas-container` shells out to `docker run` - nothing works without a daemon. **Confirm with the user before running sudo**, even if it's available. |
-| Docker group | Wrap docker commands in `sg docker -c '...'` | The invoking shell is often in the `docker` group in `/etc/group` but started before that membership took effect - bare `docker`/`kas-container` calls then fail with a permission error. `sg docker -c '...'` sidesteps this without needing `newgrp` or a new login shell. |
-| `KAS_CONTAINER_IMAGE` | `docker build -f ci/docker/Dockerfile -t agl-ci-builder:dev .` then `export KAS_CONTAINER_IMAGE=agl-ci-builder:dev` | Without this, `kas-container` defaults to the upstream `ghcr.io/siemens/kas/kas:5.5` image, which has `kas` but **not** `oelint-adv` - `make validate`'s `recipe-lint` sub-check fails with a plain "No such file or directory" that looks like a repo bug but isn't. GitHub Actions CI sets this automatically from its own build-image job; local runs must do it by hand. Documented in `docs/setup.md` but easy to skip. |
-
-## 2. Environment variables kas / kas-container read
-
-| Variable | Effect | Gotcha |
-|---|---|---|
-| `KAS_WORK_DIR` | Repo root mounted as `/work` in the container | Defaults to `$(pwd)` if unset (confirmed in kas-container's `setup_kas_dirs()`), but every script in this repo sets it explicitly (`KAS_WORK_DIR="$REPO_ROOT" kas-container ...`) for robustness - do the same in new scripts. |
-| `KAS_TARGET` | Overrides the bitbake build target | kas's own config resolver (`kas/config.py` in the installed `kas` package) checks `KAS_TARGET` (space-delimited) **before** falling back to the schema default (`core-image-minimal`) or any `target:` key in the YAML. `kas-container` auto-forwards it into the container (see whitelist below) - no extra plumbing needed once it's exported. **Real incident**: `ci/scripts/build.sh` used to omit this, so `kas-container build` silently built `core-image-minimal` instead of the matrix-resolved target for a long time before it was caught. If a build produces the wrong image name, check this first. |
-| `KAS_BUILD_DIR` | Redirects where kas puts its build dir (TMPDIR/sstate/etc.) | Setting it auto-creates the directory and kas-container mounts/forwards it correctly whether the path is inside or outside the repo root (`forward_dir()`/`setup_kas_dirs()` - no manual `mkdir`/`realpath` needed). Useful for running isolated machine/feature combos without colliding on the shared `build/`. |
-| `DL_DIR`, `KAS_REPO_REF_DIR`, `SSTATE_DIR`, `BB_HASHSERVE_DB_DIR`, `KAS_BUILDTOOLS_DIR` | Same auto-create/auto-mount treatment as `KAS_BUILD_DIR` | Via the same `forward_dir()` mechanism. |
-
-**kas-container's fixed env-var passthrough whitelist** (confirmed by reading its source): `TERM`,
-`KAS_DISTRO`, `KAS_MACHINE`, `KAS_TARGET`, `KAS_TASK`, `KAS_CLONE_DEPTH`, `KAS_PREMIRRORS`,
-`DISTRO_APT_PREMIRRORS`, `BB_NUMBER_THREADS`, `PARALLEL_MAKE`, `GIT_CREDENTIAL_USEHTTPPATH`,
-`BB_HASHSERVE`, `BB_HASHSERVE_UPSTREAM`, `NO_COLOR`, `TZ`, plus the directory-forwarding vars
-above. **Anything else needs `--runtime-args -e --runtime-args VAR=value` - two separate
-`--runtime-args` occurrences**, not one `--runtime-args "-e VAR=value"` (its parser consumes
-exactly one following word per `--runtime-args` flag). See `ci/scripts/_kas_runtime_args.sh`'s
-`kas_runtime_args()` for the established pattern (e.g. how `AGL_SSTATE_DIR` is wired through).
-
-## 3. How this repo composes its kas YAML
-
-- Fragments live in `kas/` at the repo root: `base.yml`, `pins.yml`/`floating.yml`,
-  `machine/<name>.yml`, `feature/<name>.yml`, `ci-only.yml`, `_validate-base.yml`.
-- A kas invocation takes a **colon-joined list** of these as its `KASFILE` argument, e.g.
-  `kas/base.yml:kas/machine/qemux86-64.yml:kas/feature/agl-demo.yml:kas/pins.yml`. kas merges
-  `repos:`/`layers:` additively across files.
-- Feature fragments auto-pull-in their own dependencies via kas's native `header.includes:`
-  field (e.g. `kas/feature/agl-demo.yml` includes `agl-pipewire.yml`, `agl-app-framework.yml`,
-  etc.) - this mirrors classic AGL's `aglsetup.sh`/`included.dep` transitive-dependency graph,
-  resolved natively by kas when it loads the files. **Never manually expand feature
-  dependencies** - just pass through the literal top-level feature names.
-- A `repos:` entry's `path:` controls where kas checks it out. **GOTCHA**: moving the directory
-  that holds the *outermost* kas config file changes `BBPATH` (derived from that file's
-  location), which invalidates essentially every task's sstate signature on the next build -
-  confirmed when `ci/kas/` was moved to `kas/` in this repo's history (went from a warm cache to
-  `Sstate summary: ... 0% match, 0% complete`). This is a one-time cost, not a sign something
-  broke - warn the user about it before/after relocating a kas config directory, but don't treat
-  the resulting full rebuild as a regression.
-- A `repos:` entry with **no `url:`** is treated as already-present/vendored, never fetched by
-  kas. This repo vendors `meta-agl`, `meta-agl-demo`, `meta-agl-devel` this way (git subtree),
-  unlike `external/*` repos, which *do* have `url:`/`branch:` and get pinned commits in
-  `kas/pins.yml`.
-- `ci/scripts/_compose_kasfiles.py --no-matrix` builds a kasfiles list for an arbitrary
-  machine/feature combo **without** requiring a `ci/build-matrix.yaml` entry to match - use this
-  (or `scripts/aglsetup.sh`, built on top of it) for free-form local exploration instead of
-  hand-rolling the colon-join logic.
-
-## 4. kas-container command grammar
-
-- `kas-container {checkout,build,shell} KASFILE[:KASFILE...]` - only a colon-joined file-list
-  positional arg plus flags. **There is no bare positional "target name" argument for `build`**
-  (confirmed in kas's own `plugins/build.py` argparse setup) - use the `KAS_TARGET` env var or a
-  repeatable `--target` flag instead.
-- `kas-container shell KASFILE -c "some command"` runs one non-interactive command inside the
-  container and exits - the right tool for scripted smoke-tests (e.g.
-  `bitbake-layers show-layers`, `bitbake -p`) when you don't have a real interactive TTY, e.g.
-  verifying a kas config change from an agent session rather than a human terminal.
-- `kas menu <path/to/Kconfig>` opens an interactive ncurses-style menu for exploring
-  machine/feature combos outside the curated matrix, writing a `.config.yaml`. This repo's
-  `scripts/aglsetup.sh -m <machine> <feature...>` is the non-interactive, scriptable sibling of
-  the same bypass-the-matrix idea.
-
-## 5. Running and debugging long bitbake builds safely
-
-**Never run a long build (anything beyond a few minutes) as a foreground command inside a
-tool/harness that will SIGTERM the whole process tree after some wall-clock limit** (commonly
-~10 minutes in constrained agent environments). A forced kill mid-`make -j` corrupts in-progress
-build artifacts. Symptoms actually seen from this:
-- A static archive missing its ranlib index: `archive has no index; run ranlib to add one`.
-- A git mirror left with an invalid HEAD after a kill mid-fetch, producing a misleading
-  `Unable to find revision ... even from upstream` error even though the revision exists and
-  network access is fine.
-
-**Fix: launch the build fully detached from the invoking session**, immune to the parent being
-killed:
+## 1. Normal flow
 ```sh
-setsid bash -c '... > build.log 2>&1' < /dev/null > /dev/null 2>&1 &
-disown
+git clone https://github.com/dl9pf-agl/agl-ucb && cd agl-ucb
+scripts/aglsetup.sh -m qemux86-64 [feature ...]    # interactive kas-container shell; then: bitbake agl-image-minimal
+scripts/aglsetup.sh --list-targets                  # target -> feature(s) table
 ```
-Then poll/tail the log file separately (a `Monitor` watching for
-`Tasks Summary|ERROR|artifacts in` is a good filter) without ever signaling the detached process
-group. This pattern was proven in this repo by `dockerd` itself surviving an entire multi-hour
-session this way.
+`aglsetup.sh` builds the KASFILE chain `kas/base.yml : kas/machine/<m>.yml : kas/feature/<f>.yml... [: kas/local/dev.yml] [: kas/local/sstate-shared.yml] [: kas/local/dl-shared.yml] : kas/pins.yml` (`AGL_FLOATING=1` swaps pins.yml for floating.yml) and runs `KAS_TARGET=${KAS_TARGET:-agl-image-minimal} KAS_WORK_DIR=<repo> kas-container shell`. Same chain works with `kas-container build|checkout` directly.
 
-**If a build fails right after an interruption** with a corrupted-artifact-shaped error (broken
-archive, "invalid HEAD", a linker error like `undefined reference to main` in a tool that
-clearly used to build fine) - **suspect corruption from that interruption before assuming a real
-regression**:
-1. `kas-container shell KASFILE -c "bitbake -c clean <recipe>"` to force a clean rebuild of just
-   that recipe, or
-2. `rm -rf build/downloads/git2/<corrupted-mirror>` to force a fresh re-clone of a corrupted git
-   mirror - verify corruption first with `git fsck --full` (look for "invalid HEAD" or dangling
-   commits) inside the mirror directory, and confirm plain network connectivity
-   (`curl -sI https://github.com`) so a real outage isn't misdiagnosed as corruption.
+## 2. Environment
+| Need | How / gotcha |
+|---|---|
+| Docker | `kas-container` needs a daemon. Permission error although in group `docker`: wrap in `sg docker -c '...'` (stale group in the shell). Ask the user before sudo. |
+| Container image | default `ghcr.io/siemens/kas/kas:<ver>`; it lacks `oelint-adv`. For the AGL builder set `KAS_CONTAINER_IMAGE=ghcr.io/dl9pf-agl/agl-ci/builder@<digest>` (digest in agl-ci `ci/builder.digest`). |
+| `KAS_TARGET` | beats the YAML `target:` and the schema default (`core-image-minimal`). Wrong image built -> check this first. `bitbake <target>` inside the shell ignores it. |
+| `KAS_BUILD_DIR` / `-b DIR` | separate build dir per machine/feature combo (default shared `build/`). |
+| `AGL_SSTATE_DIR`, `AGL_DL_DIR` | opt-in shared caches; aglsetup.sh adds `kas/local/{sstate,dl}-shared.yml`, mounts the dir and forwards the variable. Sstate is split per `${DEFAULTTUNE}`; keep the `AGL_SSTATE_DIR_RESOLVED :=` indirection in sstate-shared.yml (lazy `=` of an OS-passthrough variable breaks sanity.bbclass). |
+| `AGL_FLOATING` | non-empty: unpinned `kas/floating.yml`. |
 
-**Reading the cache-hit signal**: `Sstate summary: Wanted N Local 0 Mirrors 0 Missed N Current 0
-(0% match, ...)` near the start of a build log means a full rebuild from scratch is coming (set
-expectations accordingly, including about commiting to watching it to completion); a high
-`Current`/match % means a normal incremental build.
+kas-container forwards only: `TERM KAS_DISTRO KAS_MACHINE KAS_TARGET KAS_TASK KAS_CLONE_DEPTH KAS_PREMIRRORS DISTRO_APT_PREMIRRORS BB_NUMBER_THREADS PARALLEL_MAKE GIT_CREDENTIAL_USEHTTPPATH BB_HASHSERVE BB_HASHSERVE_UPSTREAM NO_COLOR TZ`, plus `KAS_BUILD_DIR DL_DIR KAS_REPO_REF_DIR SSTATE_DIR BB_HASHSERVE_DB_DIR KAS_BUILDTOOLS_DIR`. Anything else: `--runtime-args -e --runtime-args VAR=value` (two separate `--runtime-args`, one word each; see `RUNTIME_ARGS` in aglsetup.sh).
+
+## 3. Fragments
+- `kas/base.yml` clones meta-agl, meta-agl-demo, meta-agl-devel (`url:` + `branch: master`) and external layers into `external/` (bitbake, oe-core, meta-openembedded, meta-lts-mixins-rust). The five clone dirs are git-ignored.
+- `kas/feature/<n>.yml` is a 1-line pointer into the repo owning the real fragment; features pull their own dependencies via `header.includes:`. Never expand dependencies by hand; pass top-level feature names.
+- Machines: `kas/machine/<m>.yml`. `h3ulcb*`/`m3ulcb*` need the proprietary package hook (aglsetup.sh runs it once meta-agl is cloned).
+- A `repos:` entry with `url:` null/empty is a local dir, never touched by kas. A kas config is resolved relative to the git root of the first file.
+- Moving the directory of the outermost kas config changes `BBPATH` -> full sstate miss once. Expected, not a regression.
+
+## 4. Hard-reset trap and dev mode
+Facts (kas 5.5, tested): a CLEAN clone with `branch:` and no `commit:` is hard-reset to the branch tip on every kas run, so unpushed commits are lost; a DIRTY clone is skipped ("Repo ... is dirty - no checkout"); `commit:` pins exactly (a fork `url:` + SHA works; the warning "Using branch without commit ... is unsafe" is normal).
+- To work on a layer: clone once with plain `aglsetup.sh`, then `aglsetup.sh --dev ...` (adds `kas/local/dev.yml`, which empties `url:`/`branch:` of the three layers). `--dev` requires the clones to exist.
+- Without `--dev`, aglsetup.sh warns when a clone has local changes or unpushed commits.
+- CI pins the repo under test with a generated fragment (`commit:`, fork `url:`), appended last; see the agl-ci `agl-ci-layer-engine` skill.
+
+## 5. Command grammar
+- `kas-container {checkout,build,shell} KASFILE[:KASFILE...]`; no positional target for `build`: use `KAS_TARGET` or `--target`.
+- `kas-container shell KASFILE -c "cmd"` runs one non-interactive command (e.g. `bitbake-layers show-layers`, `bitbake -p`): the way to smoke-test from an agent session without a TTY.
+- `kas menu <Kconfig>` is an interactive picker; aglsetup.sh is the scriptable sibling.
+
+## 6. Long builds
+Never run a long build as a foreground command that a harness can SIGTERM: a kill mid-`make -j` corrupts artifacts (`archive has no index; run ranlib`, git mirror with invalid HEAD -> misleading `Unable to find revision ... even from upstream`). Launch detached and tail the log:
+```sh
+setsid bash -c 'scripts/... > build.log 2>&1' < /dev/null > /dev/null 2>&1 & disown
+```
+After an interruption suspect corruption first: `bitbake -c clean <recipe>` via `kas-container shell ... -c`, or `rm -rf build/downloads/git2/<mirror>` (verify with `git fsck --full` and `curl -sI https://github.com`).
+Cache signal: `Sstate summary: Wanted N Local 0 Mirrors 0 Missed N Current 0 (0% match...)` = full rebuild ahead (hours); high Current = incremental.
