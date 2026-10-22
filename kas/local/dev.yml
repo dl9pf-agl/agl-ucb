@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: MIT
+header:
+  version: 22
+
+# Dev mode (aglsetup.sh --dev): the three AGL layers become plain local directories, kas never
+# fetches, resets or moves them. Clone them first (run aglsetup.sh once without --dev).
+repos:
+  meta-agl:
+    url:
+    branch:
+  meta-agl-demo:
+    url:
+    branch:
+  meta-agl-devel:
+    url:
+    branch:
