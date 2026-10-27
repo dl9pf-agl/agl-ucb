@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: MIT
+name: lint
+# Static checks of agl-ucb on every pull request and push to master: workflows, scripts and the kas configuration
+# (scripts/lint.sh). It builds nothing; the layer repos run the builds (agl-ci layer-ci.yml).
+# The job runs on the self-hosted pools, chosen by the pinned workflow (agl-ci repo-lint.yml), not by this file:
+# pull request from this repo or push -> trusted pool, pull request from a fork -> untrusted pool.
+# To run on a GitHub-hosted runner instead, set `runner: github` below.
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  lint:
+    # agl-ci main with the reusable workflow (agl-ci PR #35, merge commit). Bump it by pull request like every other pin.
+    uses: dl9pf-agl/agl-ci/.github/workflows/repo-lint.yml@f0623088e5d83a6e78f6d43f6bffef21d12c4727
+    permissions: { contents: read }
+    with:
+      runner: pool
