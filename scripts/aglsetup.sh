@@ -152,7 +152,9 @@ case "$MACHINE" in
     hook="meta-agl/meta-agl-bsp/meta-rcar-gen3/scripts/setup_mm_packages.sh"
     if [ -f "$hook" ]; then
       echo "$(basename "$0"): running proprietary R-Car package hook for $MACHINE"
-      ( export METADIR="$(cd meta-agl && pwd)"; source "$hook"; copy_mm_packages ) \
+      ( METADIR="$(cd meta-agl && pwd)"; export METADIR
+        # shellcheck source=/dev/null  # the hook only exists in a checked-out meta-agl, so shellcheck cannot follow it
+        source "$hook"; copy_mm_packages ) \
         || echo "$(basename "$0"): WARNING: proprietary package setup failed/incomplete" \
                  "for $MACHINE - see docs/setup.md for what's required" >&2
     else
