@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: MIT
+header:
+  version: 22
+
+# Optional - only included when $AGL_MIRROR_URL is set (see agl-ci ci/scripts/_kas_runtime_args.sh, kas_extra_includes).
+# Reads sources and sstate from a mirror that is served like agl-ci's kit/mirror:
+#   $AGL_MIRROR_URL/dl/                  downloads, git2_*.tar.gz, uninative/<sha256>/...   (flat copy of a DL_DIR)
+#   $AGL_MIRROR_URL/sstate/<DEFAULTTUNE>/  sstate objects                                    (a SSTATE_DIR)
+# Set AGL_MIRROR_URL without a trailing slash, e.g. AGL_MIRROR_URL=https://mirror.example.org
+#
+# The mirror is tried before the upstream URL of every recipe (PREMIRRORS); AGL's own MIRRORS (agl.conf) stay as the last
+# line. The uninative tarball is found through the same http(s) line: bitbake maps it to $AGL_MIRROR_URL/dl/uninative/...
+# Downloads are checked against the checksums of the recipes; sstate objects have no integrity check, so point
+# AGL_MIRROR_URL only at a mirror that only trusted builds write.
+#
+# AGL_MIRROR_URL_RESOLVED := ... is required for the same reason as in sstate-shared.yml: AGL_MIRROR_URL is an
+# OS-environment-passthrough variable, and a direct reference inside a lazily expanded value is not reliable; the immediate
+# `:=` capture is. (Tested with bitbake 2.18: PREMIRRORS and SSTATE_MIRRORS expand to the mirror.)
+env:
+  AGL_MIRROR_URL:
+
+local_conf_header:
+  mirrors: |
+    AGL_MIRROR_URL_RESOLVED := "${AGL_MIRROR_URL}"
+    PREMIRRORS:prepend = "\
+    git://.*/.*      ${AGL_MIRROR_URL_RESOLVED}/dl/ \n \
+    gitsm://.*/.*    ${AGL_MIRROR_URL_RESOLVED}/dl/ \n \
+    ftp://.*/.*      ${AGL_MIRROR_URL_RESOLVED}/dl/ \n \
+    http://.*/.*     ${AGL_MIRROR_URL_RESOLVED}/dl/ \n \
+    https://.*/.*    ${AGL_MIRROR_URL_RESOLVED}/dl/ \n \
+    "
+    SSTATE_MIRRORS:prepend = "file://.* ${AGL_MIRROR_URL_RESOLVED}/sstate/${DEFAULTTUNE}/PATH;downloadfilename=PATH \n"
