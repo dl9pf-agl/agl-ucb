@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: MIT
+header:
+  version: 22
+
+# Optional - only included when $AGL_HASHSERV_UPSTREAM is set (agl-ci ci/scripts/_kas_runtime_args.sh, kas_extra_includes).
+# UNTRUSTED builds (fork pull requests): a private local hash equivalence server (the `auto` one, database in the build's own
+# sstate directory, see sstate-shared.yml) that READS from the shared read-only instance. AGL_HASHSERV_UPSTREAM is "host:port"
+# of that instance (agl-ci chapter 14, port 9494). The build learns the trusted equivalences, and what it reports stays in its
+# own private database; it cannot write to the shared server.
+# Same immediate-capture reason as in hashserv-rw.yml. (Tested with bitbake 2.18: the local server is started with the
+# given upstream and the upstream server receives its lookups.)
+env:
+  AGL_HASHSERV_UPSTREAM:
+
+local_conf_header:
+  hashserv-upstream: |
+    AGL_HASHSERV_UPSTREAM_RESOLVED := "${AGL_HASHSERV_UPSTREAM}"
+    BB_HASHSERVE = "auto"
+    BB_HASHSERVE_UPSTREAM = "${AGL_HASHSERV_UPSTREAM_RESOLVED}"
+    BB_SIGNATURE_HANDLER = "OEEquivHash"
