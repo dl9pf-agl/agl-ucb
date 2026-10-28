@@ -13,16 +13,12 @@ header:
 # floats had drifted out of mutual compatibility (meta-flutter's pin had moved ~6 months ahead of
 # its paired openembedded-core pin, which doesn't understand the newer SPDX "AND"/"OR" LICENSE
 # syntax meta-flutter's current recipes use - surfaced as `license-format` QA errors on
-# libwebrtc/rive-text). meta-agl is intentionally not pinned here: it is the repo under test in CI
-# (pinned by a generated fragment) and the tip of master otherwise. meta-agl-demo and meta-agl-devel
-# are pinned so a run does not depend on whatever their master tip is today; bump them with the rest.
+# libwebrtc/rive-text). The three AGL layer repos meta-agl, meta-agl-demo and meta-agl-devel are intentionally NOT pinned here:
+# they float on the tip of their branch (the repo under test is pinned by a generated fragment in CI). A RELEASE needs a written-out
+# pin of all of them: agl-ci's ci/scripts/resolved-pins.sh prints the commits a tree resolved to, in this file's format.
 overrides:
   repos:
     # base.yml
-    meta-agl-demo:
-      commit: ecc52c364885061a7fefe79d7de726ab7da10568
-    meta-agl-devel:
-      commit: 8e2f29e1d99368a6259586ba70d0fbf0b5c55dba
     bitbake:
       commit: fae9db3168dbff1b8c76fe9c6726a9687ff97514
     openembedded-core:
