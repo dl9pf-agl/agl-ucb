@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: MIT
+header:
+  version: 22
+
+# Optional - only included when $AGL_HASHSERV_RW is set (agl-ci ci/scripts/_kas_runtime_args.sh, kas_extra_includes).
+# TRUSTED builds only: use the shared hash equivalence server for reading AND writing. AGL_HASHSERV_RW is "host:port" of the
+# read-write instance (agl-ci chapter 14, port 9393). Anything that is allowed to write there can bind a task hash to an
+# output of its choice, so this is for nightly, push and release builds, never for builds of fork pull requests.
+# AGL_HASHSERV_RW_RESOLVED := ... is the immediate capture that sstate-shared.yml explains: AGL_HASHSERV_RW is an
+# OS-environment-passthrough variable. (Tested with bitbake 2.18 and a local server: bitbake sends its lookups to it.)
+env:
+  AGL_HASHSERV_RW:
+
+local_conf_header:
+  hashserv-rw: |
+    AGL_HASHSERV_RW_RESOLVED := "${AGL_HASHSERV_RW}"
+    BB_HASHSERVE = "${AGL_HASHSERV_RW_RESOLVED}"
+    BB_SIGNATURE_HANDLER = "OEEquivHash"
