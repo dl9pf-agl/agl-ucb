@@ -15,8 +15,8 @@ permissions: {}
 
 jobs:
   lint:
-    # agl-ci main with the reusable workflow (agl-ci PR #35, merge commit). Bump it by pull request like every other pin.
-    uses: dl9pf-agl/agl-ci/.github/workflows/repo-lint.yml@f0623088e5d83a6e78f6d43f6bffef21d12c4727
+    # agl-ci main with the reusable workflow (last commit of agl-ci PR #40). Bump it by pull request like every other pin.
+    uses: dl9pf-agl/agl-ci/.github/workflows/repo-lint.yml@5212c16d61c8c7265e266056a63ec831c21e6aef
     permissions: { contents: read }
     with:
       runner: pool
