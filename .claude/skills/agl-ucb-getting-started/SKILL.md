@@ -21,7 +21,7 @@ bitbake agl-image-minimal                          # inside the shell, you run i
 - Long builds: run detached with a log file, never as a foreground command that can be killed (a kill mid-compile corrupts artifacts). Details: `kas-operations` section 6.
 
 ## Working on a layer: `--dev`
-Without `commit:` kas hard-resets a clean layer clone to its branch tip on every run, and unpushed commits are lost. To edit `meta-agl*`: run once without `--dev` (clones), then always `scripts/aglsetup.sh --dev ...` (kas never touches the three clones). aglsetup.sh warns when a clone has local changes and `--dev` is missing.
+Without `commit:` kas hard-resets a clean layer clone to its branch tip on every run, and unpushed commits are lost. To edit `meta-agl*`: run once without `--dev` (clones), then always `scripts/aglsetup.sh --dev ...` (kas never touches the three clones). aglsetup.sh warns when a clone has local changes and `--dev` is missing; `--dev` without the clones stops with "--dev needs meta-agl cloned" (tested). With `--dev`, `kas dump` shows empty `url` and `branch` for the three layers (tested).
 
 ## Boards with proprietary parts
 `h3ulcb`, `h3ulcb-kf`, `m3ulcb`, `m3ulcb-kf` (not the `-nogfx` variants): aglsetup.sh runs the R-Car multimedia package hook from meta-agl once meta-agl is cloned; on a first-ever run it is skipped with a warning, run again. EULA acceptance (`EULA_<MACHINE>=1`) is not a kas setting here; CI sets it from the matrix, locally set it yourself. The warning text points to `docs/setup.md`, which does not exist in this repo.
