@@ -1,0 +1,6 @@
+# What CI runs and what an agent is told to do: the owner reviews every change to these paths.
+# ci/ holds the build matrix, which decides what is built and on which machines.
+# Takes effect when the branch ruleset requires review from code owners.
+/.github/ @dl9pf
+/.claude/ @dl9pf
+/ci/ @dl9pf
