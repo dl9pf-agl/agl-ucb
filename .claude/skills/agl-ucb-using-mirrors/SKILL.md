@@ -5,7 +5,7 @@ description: How to use shared caches, a source/sstate mirror and a hash equival
 
 # Caches and mirrors (agl-ucb)
 
-All are optional local fragments; none is in the default chain. agl-ci's `ci/scripts/_kas_runtime_args.sh` appends each when its variable is set. `scripts/aglsetup.sh` handles only `AGL_SSTATE_DIR` and `AGL_DL_DIR` (adds the fragment, mounts the directory, forwards the variable) and `AGL_FLOATING`. **It does not add `mirrors.yml` or the hashserv fragments**: for those, append the fragment to your KASFILE chain yourself and forward the variable into the container as aglsetup does for the cache dirs (`--runtime-args -e --runtime-args VAR=value`). Not tested end to end locally.
+All are optional local fragments; none is in the default chain. agl-ci's `ci/scripts/_kas_runtime_args.sh` appends each when its variable is set. `scripts/aglsetup.sh` handles only `AGL_SSTATE_DIR` and `AGL_DL_DIR` (adds the fragment, mounts the directory, forwards the variable) and `AGL_FLOATING`. **It does not add `mirrors.yml` or the hashserv fragments**: for those, append the fragment to your KASFILE chain yourself and forward the variable into the container as aglsetup does for the cache dirs (`--runtime-args -e --runtime-args VAR=value`). Tested with real kas and bitbake 2.18 (offline, builder image, 2026-10-29): with `mirrors.yml` and `AGL_MIRROR_URL=http://host:8080`, `PREMIRRORS` starts with the mirror for git, gitsm, ftp, http and https (`$URL/dl/`) and `SSTATE_MIRRORS` is `file://.* $URL/sstate/<tune>/PATH;downloadfilename=PATH`; without the fragment `SSTATE_MIRRORS` is undefined. Not tested: forwarding the variable through `kas-container` (the `--runtime-args -e` form).
 
 | Variable | Fragment | Effect |
 |---|---|---|
