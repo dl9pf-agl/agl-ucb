@@ -8,7 +8,8 @@ What it catches (each of these breaks a build only later, in a long kas run):
   - an include of a file of this repo that does not exist;
   - an include of another repo ({repo: X, file: Y}) where X is not declared in any `repos:` of kas/;
   - local_conf_header entries that are not strings;
-  - kas/pins.yml (overrides.repos) entries without a 40-hex commit.
+  - kas/pins.yml and kas/releases/pins_<branch>_<version>.yml (overrides.repos) entries without a 40-hex commit, or a release
+    file with a wrong name.
 It does not resolve repos or run bitbake; CI of the layer repos does that. It does not check that a pinned repo is declared
 somewhere: most are declared in the feature fragments of the layer repos (meta-agl/kas/feature/*.yml), not in this repo.
 Usage: scripts/check-kas.py [repo-root]     (default: the repo that contains this script)
@@ -59,12 +60,32 @@ for f, d in docs.items():
         if not isinstance(val, str):
             err(f, f"local_conf_header.{key} is not a string")
 
+
+def check_pins(path):
+    # A pins file (kas/pins.yml or a release file) is `overrides: repos: {name: {commit: <40 hex>}}`. It must pin at least one
+    # repo, and every commit must be a plain 40-character hex string. A commit that YAML read as a number (all digits) is not a
+    # string and is refused too: better to stop than to pin a mangled id.
+    repos = (docs[path].get("overrides") or {}).get("repos") or {}
+    if not repos:
+        err(path, "overrides.repos is empty")
+    for name, repo in repos.items():
+        commit = (repo or {}).get("commit", "")
+        if not (isinstance(commit, str) and re.fullmatch(r"[0-9a-f]{40}", commit)):
+            err(path, f"overrides.repos.{name}.commit is not a 40-hex SHA: {commit!r}")
+
+
+# The dev pins file, checked as before.
 pins = root / "kas" / "pins.yml"
 if pins in docs:
-    for name, repo in ((docs[pins].get("overrides") or {}).get("repos") or {}).items():
-        commit = (repo or {}).get("commit", "")
-        if not re.fullmatch(r"[0-9a-f]{40}", str(commit)):
-            err(pins, f"overrides.repos.{name}.commit is not a 40-hex SHA: {commit!r}")
+    check_pins(pins)
+# One immutable pins file per release in kas/releases/ (made by scripts/prepare-release.sh): check its name (the tag name
+# <branch>_<version> and the signature file names derive from it) and its content.
+for rel in sorted((root / "kas" / "releases").glob("*.yml")):
+    if not re.fullmatch(r"pins_[a-z]+_[0-9]+\.[0-9]+\.[0-9]+\.yml", rel.name):
+        err(rel, "name must be pins_<branch>_<version>.yml (lower case branch, version x.y.z)")
+    # `docs` only holds files that parsed as YAML mappings; a broken file was already reported in the loop at the top.
+    if rel in docs:
+        check_pins(rel)
 
 if errors:
     print("\n".join(errors))
