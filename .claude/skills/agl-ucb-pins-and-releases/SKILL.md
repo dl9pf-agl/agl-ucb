@@ -13,6 +13,8 @@ description: Which repos kas/pins.yml pins in agl-ucb and which float, how overr
 - The comments in `pins.yml` and `floating.yml` mention `make lock`, `make pin-update` and `docs/setup.md`. **None of them exists in this repo** (no Makefile, no `docs/`). Bump by hand, or write the resolved commits with agl-ci's `ci/scripts/resolved-pins.sh` and review.
 
 ## Reproducing or releasing
+**A release has its own file**: `scripts/prepare-release.sh <branch> <version>` writes `kas/releases/pins_<branch>_<version>.yml`, pinning EVERY repo of every fragment (the three AGL layers included) from one `kas dump --resolve-refs`; review, merge by pull request, then a release engineer tags `<branch>_<version>`. The agl-ci release build uses that file instead of `kas/pins.yml`. Never edit one, never reuse a version (`kas/releases/README.md`). For an ad-hoc reproduction of a single run, use the written-out pin below.
+
 A run on floating layers is not described by `pins.yml` alone. For a reproducible build or a release, use the **written-out pin**: agl-ci's `ci/scripts/resolved-pins.sh` prints the commit of every repo of a checked-out tree as a fragment in this file's format (the `matrix` job of every CI run shows it in its summary). Build with that file in place of `kas/pins.yml`: `kas/base.yml:...:resolved-pins.yml`. Tested: it brought a tree moved to older commits back to exactly the recorded ones, offline. Release pins must be commits on the declared branch (`master`), otherwise kas fetches. Store the file with the release.
 
 ## Pin bump checklist

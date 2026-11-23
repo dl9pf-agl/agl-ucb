@@ -4,10 +4,12 @@ This is `agl-ucb`, the umbrella checkout for AGL builds: the kas fragments under
 
 ## Commands
 - `scripts/lint.sh`: actionlint, zizmor, shellcheck of `scripts/*.sh`, `scripts/check-kas.py`. Run it before every pull request.
+- `scripts/prepare-release.sh <branch> <version>`: writes the pins file of a release (needs kas 5.x and network); `scripts/prepare-release_test.sh` tests its converter offline.
 - `scripts/aglsetup.sh -m <machine> <features>`: interactive kas-container shell for local work (`--list-targets`, `--dev`).
 
 ## Rules for the fragments
 - `kas/pins.yml` pins the external layers only; `meta-agl`, `meta-agl-demo` and `meta-agl-devel` float on their branch and must not be added (kas applies `overrides:` last and a pin would beat the generated pin of a repo under test).
+- `kas/releases/pins_<branch>_<version>.yml` is the exception: one immutable file per release, made by `scripts/prepare-release.sh`, pinning every repo including the three AGL layers. Only the agl-ci release build uses it (instead of `kas/pins.yml`). Never edit one, never reuse a version; see `kas/releases/README.md`.
 - A feature fragment here is a one-line pointer to the repo that owns the real one.
 
 ## Working rules
