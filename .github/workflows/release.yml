@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: MIT
+name: release
+# The release of AGL: starts when a release engineer pushes a tag <branch>_<version> (for example vimba_22.0.2; the rehearsal
+# uses releasetest_0.0.1). The tag must sit on a commit that has kas/releases/pins_<branch>_<version>.yml
+# (scripts/prepare-release.sh makes it, a pull request merges it). Tag protection (ruleset "release tags") lets only repository
+# admins create such tags; the signature that promote.sh checks names this tag (refs/tags/...).
+# All work is in the pinned reusable workflow of agl-ci: build on the trusted pool, sign in a job with the only id-token,
+# publish on the build host. Bump the pin by pull request like every other pin.
+on:
+  push:
+    tags: ['[a-z]*_[0-9]*.[0-9]*.[0-9]*']
+
+permissions: {}
+
+jobs:
+  release:
+    uses: dl9pf-agl/agl-ci/.github/workflows/release.yml@a1f9a19fba8141d6c1c53998414a749e7c13981b # main (agl-ci #80)
+    # id-token: write is what the signing job of the called workflow needs; a called workflow cannot have more than its caller.
+    permissions: { contents: read, id-token: write }
