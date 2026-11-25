@@ -24,4 +24,3 @@ A run on floating layers is not described by `pins.yml` alone. For a reproducibl
 - The tag `<branch>_<version>` (admins only) starts `.github/workflows/release.yml` here: a caller of agl-ci `release.yml`, pinned by commit, granting `contents: write` and `id-token: write` (the ceiling).
 - Build jobs run on any host of the pool; the signed files are published as assets of the GitHub release of the tag; the download server merges the images of all hosts and promotes when the CI signature and the engineer signature file (`kas/releases/<branch>_<version>.SHA256SUMS.<id>.sig`) are valid.
 - The engineer step is one new file by pull request (`cosign sign-blob --sk --output-signature <file> SHA256SUMS`); never change an existing release file; a failed run is not repeated, take the next version.
-- Rehearsal: `releasetest_0.0.1` to `0.0.3` (the last passed end to end; its signature was made with a throw-away key).
