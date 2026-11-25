@@ -75,3 +75,6 @@ overrides:
     # machine/aws-ec2-arm64.yml, machine/aws-ec2-x86-64.yml
     meta-aws:
       commit: 5e7cc95f7d55a0ba0ae6a7e6e43e6323811a140a
+    # kas/local/vulnscout.yml (resolved 2026-11-25; the repo has no release tags, pin and bump deliberately)
+    meta-vulnscout:
+      commit: a726307e568654db4f0e014a256e2e17d0a627a2
