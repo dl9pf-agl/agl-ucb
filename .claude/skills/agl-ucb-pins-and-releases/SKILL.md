@@ -19,3 +19,9 @@ A run on floating layers is not described by `pins.yml` alone. For a reproducibl
 
 ## Pin bump checklist
 1. Edit `pins.yml` (all affected entries). 2. `scripts/check-kas.py`. 3. `kas checkout` of one machine+feature chain, offline afterwards if you can. 4. A real build of `agl-image-minimal` on qemux86-64. 5. PR; the layer repos' CI picks agl-ucb's default branch at run time, so a merge changes what their next runs build.
+
+## The release after the tag (agl-ci manual chapter 19)
+- The tag `<branch>_<version>` (admins only) starts `.github/workflows/release.yml` here: a caller of agl-ci `release.yml`, pinned by commit, granting `contents: write` and `id-token: write` (the ceiling).
+- Build jobs run on any host of the pool; the signed files are published as assets of the GitHub release of the tag; the download server merges the images of all hosts and promotes when the CI signature and the engineer signature file (`kas/releases/<branch>_<version>.SHA256SUMS.<id>.sig`) are valid.
+- The engineer step is one new file by pull request (`cosign sign-blob --sk --output-signature <file> SHA256SUMS`); never change an existing release file; a failed run is not repeated, take the next version.
+- Rehearsal: `releasetest_0.0.1` to `0.0.3` (the last passed end to end; its signature was made with a throw-away key).
