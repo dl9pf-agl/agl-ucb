@@ -14,7 +14,7 @@ permissions: {}
 
 jobs:
   release:
-    uses: dl9pf-agl/agl-ci/.github/workflows/release.yml@a78d7dad32c21f55192bab2da5f51b6c8c34b1fc # main (agl-ci#87: release flow, plain tar, chapter 19)
+    uses: dl9pf-agl/agl-ci/.github/workflows/release.yml@70fba0cf0a963fecbfbfbea0e8d701c5b828873d # main (agl-ci 70fba0c: trowl layer, vulnscout step, collect step, own layers from origin)
     # A called workflow cannot have more than its caller, so this is the ceiling. id-token: write is used by its signing job (attest) only,
     # contents: write by its publish job only (it creates the GitHub release with the signed files); no job has both.
     permissions: { contents: write, id-token: write }
