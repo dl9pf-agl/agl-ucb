@@ -1,0 +1,54 @@
+# SPDX-License-Identifier: MIT
+header:
+  version: 22
+
+# LOCAL WORKSTATION USE ONLY - included when $AGL_VULNSCOUT is set and CI is NOT "true" (agl-ci's
+# ci/scripts/_kas_runtime_args.sh, kas_extra_includes). CI uses kas/local/vulnscout-sbom.yml instead: the vulnscout
+# bbclass itself calls `docker` (docker ps/pull/run/exec, to launch and talk to VulnScout's own scanner container) FROM
+# INSIDE the bitbake task, which would mean handing the build environment - untrusted/recipe-driven code - access to the
+# privileged sidecar Docker daemon that only the trusted runner is meant to reach (agl-ci manual chapter 05: the sidecar
+# can read the raw host disk via a nested privileged container). Fine on a developer's own workstation, where the
+# developer already has full access to their own Docker daemon anyway; not fine in CI. CI instead inherits only
+# create-spdx (vulnscout-sbom.yml, no docker) and scans the resulting SPDX file from the trusted runner side
+# (agl-ci's vulnscout-scan.sh, same arrangement as trowl).
+#
+# VulnScout (vulnscout.io, github.com/savoirfairelinux/meta-vulnscout): a second, independent CVE/vulnerability scanner,
+# run AS PART of the bitbake build via the `vulnscout_ci`/`vulnscout_report`/`vulnscout` tasks (bitbake -c <task> <image>,
+# run by hand - see the upstream docs for the web UI / non-interactive modes). LAYERSERIES_COMPAT_meta-vulnscout =
+# "wrynose blacksail": branch main matches agl-ucb's oe-core branch (wrynose).
+#
+# Needs `docker` on the workstation (vulnscout-core.inc's HOSTTOOLS_NONFATAL) and network egress at build time to
+# github.com/CVEProject/cvelistV5 and github.com/fkie-cad/nvd-json-data-feeds (sbom-cve-check.inc's native CVE/NVD
+# database fetch, SRCREV = AUTOREV on the two *-native recipes).
+#
+# VULNSCOUT_MATCH_CONDITION is REQUIRED by the vulnscout_ci task (it bb.fatal's without one) and, if it matches, FAILS
+# the build itself (the task's own gate). Default here is a REAL bar, not a no-op: nobody runs `-c vulnscout_ci` by
+# accident - it is a non-interactive task a developer types on purpose, specifically to get a pass/fail answer (unlike
+# `vulnscout_report`, which never reads this variable, or `vulnscout`'s web UI, where a human looks for themselves) -
+# a condition that can never match would make that one deliberate choice pointless. `export
+# VULNSCOUT_MATCH_CONDITION="..."` before calling kas (the `env:` passthrough below makes that reach bitbake) to use a
+# different bar, e.g. narrower ("cvss >= 9.0 and affected == true") or wider ("cvss >= 5").
+repos:
+  meta-vulnscout:
+    url: https://github.com/savoirfairelinux/meta-vulnscout.git
+    path: external/meta-vulnscout
+    branch: main
+    layers:
+      "":
+
+# Passthrough, like AGL_MIRROR_URL/AGL_SSTATE_DIR above: present only if the OS environment sets it before kas runs.
+env:
+  VULNSCOUT_MATCH_CONDITION:
+
+local_conf_header:
+  vulnscout: |
+    require conf/distro/include/sbom-cve-check.inc
+    require conf/distro/include/vulnscout-core.inc
+    VULNSCOUT_DEPLOY_DIR = "${DEPLOY_DIR_IMAGE}/vulnscout-report"
+    VULNSCOUT_REPORT = "all_assessments.adoc match_condition.adoc summary.adoc time_estimate.csv vulnerabilities.csv vulnerability_summary.txt"
+    VULNSCOUT_REPORT_CI = "all_assessments.adoc match_condition.adoc summary.adoc time_estimate.csv vulnerabilities.csv vulnerability_summary.txt"
+    # High and Critical (CVSS v3.1 bands: High 7.0-8.9, Critical 9.0-10.0) - a real bar, likely to match on most real
+    # images (see the comment above). Lower to "cvss >= 5" (Medium and up) for a wider, noisier answer; raise or narrow
+    # it (e.g. add "and affected == true") for a tighter one. See the comment above this fragment's header for why a
+    # never-matching default would defeat the one task that reads this variable.
+    VULNSCOUT_MATCH_CONDITION ?= "cvss >= 7.0"

@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: MIT
+header:
+  version: 22
+
+# CI half of vulnscout.yml - included instead of it when $AGL_VULNSCOUT is set AND CI is "true" (agl-ci's
+# ci/scripts/_kas_runtime_args.sh, kas_extra_includes). Only the plain, docker-free SBOM generation that VulnScout reads
+# afterwards: no `inherit vulnscout`, no meta-vulnscout layer, no docker call from inside the build. See vulnscout.yml's
+# own header for why the two are kept apart. The scan itself runs from the trusted runner side, against the SPDX file
+# this produces (${DEPLOY_DIR_IMAGE}/${target}-${machine}.spdx.json) - agl-ci's vulnscout-scan.sh, same shape as trowl.
+local_conf_header:
+  vulnscout-sbom: |
+    INHERIT += "create-spdx"
