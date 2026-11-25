@@ -44,6 +44,9 @@ overrides:
       commit: 54721fa1c7a4edaba7fb63cdbcaf0c6253c5fa3a
     meta-slint:
       commit: 9a364c888925fe9827cf9febfcd507cdedf129e3
+    # feature/trowl.yml
+    meta-trowl:
+      commit: 0bd589a7518414c397a33f62e2b3d9652c644be7
     # machine/raspberrypi4.yml, machine/raspberrypi5.yml
     meta-raspberrypi:
       commit: f62c67921474370829d24a4fa01ef88543f3906b
