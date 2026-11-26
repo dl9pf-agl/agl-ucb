@@ -14,7 +14,7 @@ permissions: {}
 
 jobs:
   release:
-    uses: dl9pf-agl/agl-ci/.github/workflows/release.yml@36519c3879b4a1e5e94fc47c8f85b7e51888d228 # main (agl-ci 36519c3: nightly images in the folder of their own repo)
+    uses: dl9pf-agl/agl-ci/.github/workflows/release.yml@3c78c851203738888e793cb70c655aad555f21fd # main (agl-ci 3c78c85: one folder per image, public when built)
     # A called workflow cannot have more than its caller, so this is the ceiling. id-token: write is used by its signing job (attest) only,
     # contents: write by its publish job only (it creates the GitHub release with the signed files); no job has both.
     permissions: { contents: write, id-token: write }
